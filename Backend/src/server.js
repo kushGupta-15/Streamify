@@ -3,6 +3,7 @@ import "dotenv/config";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
+import cron from "node-cron";
 
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
@@ -40,4 +41,24 @@ app.use("/api/chat", chatRoutes);
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   connectDB();
+
+  const keepAliveUrl = process.env.KEEP_ALIVE_URL;
+  if (keepAliveUrl) {
+    const keepAlivePing = async () => {
+      try {
+        const response = await fetch(keepAliveUrl, { method: "GET" });
+        console.log(
+          `Keep-alive ping to ${keepAliveUrl} responded with ${response.status}`
+        );
+      } catch (error) {
+        console.error(`Keep-alive ping failed: ${error.message}`);
+      }
+    };
+
+    keepAlivePing();
+    cron.schedule("*/10 * * * *", keepAlivePing, {
+      scheduled: true,
+      timezone: "UTC",
+    });
+  }
 });
