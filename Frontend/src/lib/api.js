@@ -29,6 +29,11 @@ export const completeOnboarding = async (userData) => {
   return response.data;
 };
 
+export const updateUserProfile = async (userData) => {
+  const response = await axiosInstance.put("/auth/profile", userData);
+  return response.data;
+};
+
 export async function getUserFriends() {
   const response = await axiosInstance.get("/users/friends");
   return response.data;
