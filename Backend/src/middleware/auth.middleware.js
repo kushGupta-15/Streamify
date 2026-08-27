@@ -10,7 +10,9 @@ export const protectRoute = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-
+    
+    // if token is expired it will throw an exception when jwt.verify() is called so the if condition is a dead part of code
+    
     if (!decoded) {
       return res.status(401).json({ message: "Unauthorized - Invalid token" });
     }

@@ -11,7 +11,7 @@ Streamify is a full-stack web application designed to help language learners con
 - **User Authentication**: Secure signup/login with JWT tokens
 - **User Onboarding**: Complete profile setup with language preferences, bio, and location
 - **Smart Matching**: Discover language partners based on complementary language skills
-- **Friend System**: Send and manage friend requests
+- **Friend System**: Send and accept friend requests *(rejecting a request is not yet supported — see Known Limitations)*
 - **Real-time Chat**: Instant messaging powered by Stream Chat
 - **Video Calling**: High-quality video calls using Stream Video SDK
 - **Responsive Design**: Mobile-friendly interface with DaisyUI and Tailwind CSS
@@ -137,17 +137,25 @@ npm start
 - `POST /api/auth/signup` - User registration
 - `POST /api/auth/login` - User login
 - `POST /api/auth/logout` - User logout
-- `POST /api/auth/onboard` - Complete user onboarding
+- `POST /api/auth/onboarding` - Complete user onboarding
+- `PUT /api/auth/profile` - Update user profile
+- `GET /api/auth/me` - Get currently logged-in user (session check)
 
 ### Users
-- `GET /api/users/recommended` - Get recommended language partners
+*All routes below require authentication.*
+- `GET /api/users/` - Get recommended language partners
 - `GET /api/users/friends` - Get user's friends list
-- `POST /api/users/friend-request` - Send friend request
-- `GET /api/users/friend-requests` - Get incoming friend requests
-- `PUT /api/users/friend-request/:id` - Accept/reject friend request
+- `POST /api/users/friend-request/:id` - Send a friend request to user `:id`
+- `PUT /api/users/friend-request/:id/accept` - Accept a friend request
+- `GET /api/users/friend-requests` - Get incoming (pending) and accepted friend requests
+- `GET /api/users/outgoing-friend-requests` - Get friend requests sent by the current user (still pending)
 
 ### Chat
 - `GET /api/chat/token` - Get Stream chat token
+
+## Known Limitations
+
+- **Rejecting friend requests is not yet implemented.** The `FriendRequest` model's `status` field currently only supports `"pending"` and `"accepted"`. A `"rejected"` state and corresponding endpoint/controller logic still need to be added so that declined requests don't remain permanently pending.
 
 ## Project Structure
 
@@ -176,7 +184,3 @@ Streamify/
 ├── package.json             # Root package.json
 └── README.md
 ```
-
-
-
-

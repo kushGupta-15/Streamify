@@ -28,6 +28,7 @@ export async function signup(req, res) {
     const idx = Math.floor(Math.random() * 100) + 1; // generate a num between 1-100
     const randomAvatar = `https://avatar.iran.liara.run/public/${idx}.png`;
 
+    // Security fix : when creating a new User we are sending password into frontend
     const newUser = await User.create({
       email,
       fullName,
