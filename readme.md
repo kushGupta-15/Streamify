@@ -11,10 +11,10 @@ Streamify is a full-stack web application designed to help language learners con
 - **User Authentication**: Secure signup/login with JWT tokens
 - **User Onboarding**: Complete profile setup with language preferences, bio, and location
 - **Smart Matching**: Discover language partners based on complementary language skills
-- **Friend System**: Send and accept friend requests *(rejecting a request is not yet supported — see Known Limitations)*
+- **Friend System**: Send, accept, decline, or cancel friend requests, unfriend partners, and dismiss notices
 - **Real-time Chat**: Instant messaging powered by Stream Chat
 - **Video Calling**: High-quality video calls using Stream Video SDK
-- **Responsive Design**: Mobile-friendly interface with DaisyUI and Tailwind CSS
+- **Responsive Design**: Mobile-friendly interface with mobile bottom navigation, DaisyUI, and Tailwind CSS
 - **Theme Support**: Multiple UI themes for personalized experience
 
 ## Tech Stack
@@ -145,17 +145,17 @@ npm start
 *All routes below require authentication.*
 - `GET /api/users/` - Get recommended language partners
 - `GET /api/users/friends` - Get user's friends list
+- `DELETE /api/users/friends/:id` - Unfriend a connected user
 - `POST /api/users/friend-request/:id` - Send a friend request to user `:id`
 - `PUT /api/users/friend-request/:id/accept` - Accept a friend request
+- `PUT /api/users/friend-request/:id/reject` - Decline a friend request
+- `DELETE /api/users/friend-request/:id` - Cancel a pending friend request
 - `GET /api/users/friend-requests` - Get incoming (pending) and accepted friend requests
-- `GET /api/users/outgoing-friend-requests` - Get friend requests sent by the current user (still pending)
+- `PUT /api/users/friend-requests/:id/dismiss` - Dismiss an accepted connection notification
+- `GET /api/users/outgoing-friend-requests` - Get friend requests sent by current user (pending)
 
 ### Chat
 - `GET /api/chat/token` - Get Stream chat token
-
-## Known Limitations
-
-- **Rejecting friend requests is not yet implemented.** The `FriendRequest` model's `status` field currently only supports `"pending"` and `"accepted"`. A `"rejected"` state and corresponding endpoint/controller logic still need to be added so that declined requests don't remain permanently pending.
 
 ## Project Structure
 

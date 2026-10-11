@@ -14,15 +14,21 @@ const friendRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      // need to add rejected state so that the request doesnt stays pending 
-      enum: ["pending", "accepted"],
+      enum: ["pending", "accepted", "rejected"],
       default: "pending",
+    },
+    dismissed: {
+      type: Boolean,
+      default: false,
     },
   },
   {
     timestamps: true,
   }
 );
+
+friendRequestSchema.index({ sender: 1, recipient: 1 });
+friendRequestSchema.index({ recipient: 1, status: 1 });
 
 const FriendRequest = mongoose.model("FriendRequest", friendRequestSchema);
 

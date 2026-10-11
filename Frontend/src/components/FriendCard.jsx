@@ -1,7 +1,27 @@
+import { useState } from "react";
 import { Link } from "react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { MessageSquareIcon, UserMinusIcon } from "lucide-react";
+import { unfriendUser } from "../lib/api";
 import { LANGUAGE_TO_FLAG } from "../constants";
+import toast from "react-hot-toast";
 
 const FriendCard = ({ friend }) => {
+  const queryClient = useQueryClient();
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const { mutate: unfriendMutation, isPending } = useMutation({
+    mutationFn: () => unfriendUser(friend._id),
+    onSuccess: () => {
+      toast.success(`Removed ${friend.fullName} from friends`);
+      queryClient.invalidateQueries({ queryKey: ["friends"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to remove friend");
+    },
+  });
+
   return (
     <div className="card bg-base-200 hover:shadow-md transition-shadow">
       <div className="card-body p-4">
@@ -24,9 +44,39 @@ const FriendCard = ({ friend }) => {
           </span>
         </div>
 
-        <Link to={`/chat/${friend._id}`} className="btn btn-outline w-full">
-          Message
-        </Link>
+        <div className="flex items-center gap-2 mt-auto">
+          <Link to={`/chat/${friend._id}`} className="btn btn-outline btn-primary btn-sm flex-1">
+            <MessageSquareIcon className="size-4 mr-1" />
+            Message
+          </Link>
+
+          {isConfirming ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => unfriendMutation()}
+                disabled={isPending}
+                className="btn btn-error btn-xs"
+                title="Confirm removal"
+              >
+                {isPending ? "..." : "Remove"}
+              </button>
+              <button
+                onClick={() => setIsConfirming(false)}
+                className="btn btn-ghost btn-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsConfirming(true)}
+              className="btn btn-ghost btn-sm btn-square text-error opacity-70 hover:opacity-100"
+              title="Remove friend"
+            >
+              <UserMinusIcon className="size-4" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

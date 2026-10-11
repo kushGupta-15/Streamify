@@ -61,6 +61,16 @@ The frontend never talks to Stream's API directly for auth — it calls the back
 - **CORS Protection**: Dynamic origin checking matching trusted development ports (`http://localhost:5173`, `http://localhost:3000`) and production `CLIENT_URL`.
 - **JWT Expiration Handling**: Returns standardized `401 Unauthorized` responses on token expiration or signature mismatch, enabling clean client-side re-authentication.
 
+## Social architecture & connection lifecycle
+
+Streamify manages the complete two-way social lifecycle:
+- **Connection States**: Supported statuses in `FriendRequest` are `pending`, `accepted`, and `rejected`.
+- **Request Cancellation**: Outgoing pending requests can be recalled/cancelled by the sender before acceptance.
+- **Request Decline**: Recipients can accept or decline (`rejected`) incoming connection requests.
+- **Mutual Unfriend**: Removing a friend executes atomic `$pull` operations on both users' `friends` collections and clears request documents.
+- **Notification Dismissal**: Senders can dismiss accepted connection notices to keep their notifications view clean.
+- **Responsive Navigation**: Adaptive view layout presenting a sticky sidebar on large screens (`lg+`) and an accessible mobile bottom navigation bar (`< lg`) alongside an adaptive top navbar with brand branding.
+
 ## Folder structure
 
 ```
@@ -92,6 +102,7 @@ Streamify/
 │       │   ├── ChatLoader.jsx
 │       │   ├── FriendCard.jsx
 │       │   ├── Layout.jsx
+│       │   ├── MobileBottomNav.jsx
 │       │   ├── Navbar.jsx
 │       │   ├── NoFriendsFound.jsx
 │       │   ├── NoNotificationsFound.jsx

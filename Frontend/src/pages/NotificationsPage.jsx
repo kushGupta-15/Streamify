@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { acceptFriendRequest, getFriendRequests } from "../lib/api";
-import { BellIcon, ClockIcon, MessageSquareIcon, UserCheckIcon } from "lucide-react";
+import {
+  acceptFriendRequest,
+  dismissNotification,
+  getFriendRequests,
+  rejectFriendRequest,
+} from "../lib/api";
+import { BellIcon, ClockIcon, MessageSquareIcon, UserCheckIcon, XIcon } from "lucide-react";
 import NoNotificationsFound from "../components/NoNotificationsFound";
+import toast from "react-hot-toast";
 
 const NotificationsPage = () => {
   const queryClient = useQueryClient();
@@ -11,11 +17,33 @@ const NotificationsPage = () => {
     queryFn: getFriendRequests,
   });
 
-  const { mutate: acceptRequestMutation, isPending } = useMutation({
+  const { mutate: acceptRequestMutation, isPending: isAccepting } = useMutation({
     mutationFn: acceptFriendRequest,
     onSuccess: () => {
+      toast.success("Friend request accepted!");
       queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
       queryClient.invalidateQueries({ queryKey: ["friends"] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to accept request");
+    },
+  });
+
+  const { mutate: rejectRequestMutation, isPending: isRejecting } = useMutation({
+    mutationFn: rejectFriendRequest,
+    onSuccess: () => {
+      toast.success("Friend request declined");
+      queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to decline request");
+    },
+  });
+
+  const { mutate: dismissNotificationMutation } = useMutation({
+    mutationFn: dismissNotification,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
     },
   });
 
@@ -66,13 +94,22 @@ const NotificationsPage = () => {
                             </div>
                           </div>
 
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => acceptRequestMutation(request._id)}
-                            disabled={isPending}
-                          >
-                            Accept
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => acceptRequestMutation(request._id)}
+                              disabled={isAccepting || isRejecting}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              className="btn btn-outline btn-error btn-sm"
+                              onClick={() => rejectRequestMutation(request._id)}
+                              disabled={isAccepting || isRejecting}
+                            >
+                              Decline
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -93,26 +130,38 @@ const NotificationsPage = () => {
                   {acceptedRequests.map((notification) => (
                     <div key={notification._id} className="card bg-base-200 shadow-sm">
                       <div className="card-body p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="avatar mt-1 size-10 rounded-full">
-                            <img
-                              src={notification.recipient.profilePic}
-                              alt={notification.recipient.fullName}
-                            />
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="avatar mt-1 size-10 rounded-full">
+                              <img
+                                src={notification.recipient.profilePic}
+                                alt={notification.recipient.fullName}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{notification.recipient.fullName}</h3>
+                              <p className="text-sm my-1">
+                                {notification.recipient.fullName} accepted your friend request
+                              </p>
+                              <p className="text-xs flex items-center opacity-70">
+                                <ClockIcon className="h-3 w-3 mr-1" />
+                                Recently
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{notification.recipient.fullName}</h3>
-                            <p className="text-sm my-1">
-                              {notification.recipient.fullName} accepted your friend request
-                            </p>
-                            <p className="text-xs flex items-center opacity-70">
-                              <ClockIcon className="h-3 w-3 mr-1" />
-                              Recently
-                            </p>
-                          </div>
-                          <div className="badge badge-success">
-                            <MessageSquareIcon className="h-3 w-3 mr-1" />
-                            New Friend
+
+                          <div className="flex items-center gap-2">
+                            <div className="badge badge-success hidden sm:flex">
+                              <MessageSquareIcon className="h-3 w-3 mr-1" />
+                              New Friend
+                            </div>
+                            <button
+                              onClick={() => dismissNotificationMutation(notification._id)}
+                              className="btn btn-ghost btn-xs btn-circle opacity-60 hover:opacity-100"
+                              title="Dismiss notification"
+                            >
+                              <XIcon className="size-4" />
+                            </button>
                           </div>
                         </div>
                       </div>

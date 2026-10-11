@@ -53,18 +53,24 @@ export async function sendFriendRequest(req, res) {
       return res.status(400).json({ message: "You are already friends with this user" });
     }
 
-    // check if a req already exists
+    // check if a pending or accepted req already exists
     const existingRequest = await FriendRequest.findOne({
       $or: [
         { sender: myId, recipient: recipientId },
         { sender: recipientId, recipient: myId },
       ],
+      status: { $in: ["pending", "accepted"] },
     });
 
     if (existingRequest) {
+      if (existingRequest.status === "pending") {
+        return res
+          .status(400)
+          .json({ message: "A pending friend request already exists between you and this user" });
+      }
       return res
         .status(400)
-        .json({ message: "A friend request already exists between you and this user" });
+        .json({ message: "You are already connected with this user" });
     }
 
     const friendRequest = await FriendRequest.create({
@@ -114,6 +120,107 @@ export async function acceptFriendRequest(req, res) {
   }
 }
 
+export async function rejectFriendRequest(req, res) {
+  try {
+    const { id: requestId } = req.params;
+
+    const friendRequest = await FriendRequest.findById(requestId);
+
+    if (!friendRequest) {
+      return res.status(404).json({ message: "Friend request not found" });
+    }
+
+    if (friendRequest.recipient.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You are not authorized to decline this request" });
+    }
+
+    friendRequest.status = "rejected";
+    await friendRequest.save();
+
+    res.status(200).json({ message: "Friend request declined" });
+  } catch (error) {
+    console.error("Error in rejectFriendRequest controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function cancelFriendRequest(req, res) {
+  try {
+    const { id: requestId } = req.params;
+
+    const friendRequest = await FriendRequest.findById(requestId);
+
+    if (!friendRequest) {
+      return res.status(404).json({ message: "Friend request not found" });
+    }
+
+    if (friendRequest.sender.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You are not authorized to cancel this request" });
+    }
+
+    if (friendRequest.status !== "pending") {
+      return res.status(400).json({ message: "Only pending requests can be cancelled" });
+    }
+
+    await FriendRequest.findByIdAndDelete(requestId);
+
+    res.status(200).json({ message: "Friend request cancelled successfully" });
+  } catch (error) {
+    console.error("Error in cancelFriendRequest controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function unfriend(req, res) {
+  try {
+    const myId = req.user.id;
+    const { id: friendId } = req.params;
+
+    await User.findByIdAndUpdate(myId, {
+      $pull: { friends: friendId },
+    });
+
+    await User.findByIdAndUpdate(friendId, {
+      $pull: { friends: myId },
+    });
+
+    await FriendRequest.deleteMany({
+      $or: [
+        { sender: myId, recipient: friendId },
+        { sender: friendId, recipient: myId },
+      ],
+    });
+
+    res.status(200).json({ message: "Friend removed successfully" });
+  } catch (error) {
+    console.error("Error in unfriend controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+export async function dismissNotification(req, res) {
+  try {
+    const { id: requestId } = req.params;
+
+    const request = await FriendRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    if (request.sender.toString() !== req.user.id && request.recipient.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to dismiss this notification" });
+    }
+
+    request.dismissed = true;
+    await request.save();
+
+    res.status(200).json({ message: "Notification dismissed" });
+  } catch (error) {
+    console.error("Error in dismissNotification controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
 export async function getFriendRequests(req, res) {
   try {
     const incomingReqs = await FriendRequest.find({
@@ -124,6 +231,7 @@ export async function getFriendRequests(req, res) {
     const acceptedReqs = await FriendRequest.find({
       sender: req.user.id,
       status: "accepted",
+      dismissed: { $ne: true },
     }).populate("recipient", "fullName profilePic");
 
     res.status(200).json({ incomingReqs, acceptedReqs });
