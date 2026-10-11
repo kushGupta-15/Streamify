@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
 import { useQuery } from "@tanstack/react-query";
-import { getStreamToken, verifyChatAccess } from "../lib/api";
+import { getStreamToken, getUserFriends, verifyChatAccess } from "../lib/api";
 
 import {
   Channel,
@@ -19,6 +19,7 @@ import { VideoIcon } from "lucide-react";
 
 import ChatLoader from "../components/ChatLoader";
 import CallButton from "../components/CallButton";
+import AiAssistantModal from "../components/AiAssistantModal";
 
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
@@ -30,8 +31,17 @@ const ChatPage = () => {
   const [channel, setChannel] = useState(null);
   const [loading, setLoading] = useState(true);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const { authUser } = useAuthUser();
+
+  const { data: friends = [] } = useQuery({
+    queryKey: ["friends"],
+    queryFn: getUserFriends,
+    enabled: !!authUser,
+  });
+
+  const partnerUser = friends.find((f) => f._id === targetUserId);
 
   const { data: accessData, isLoading: checkingAccess, error: accessError } = useQuery({
     queryKey: ["chatAccess", targetUserId],
@@ -180,7 +190,10 @@ const ChatPage = () => {
       <Chat client={chatClient}>
         <Channel channel={channel}>
           <div className="w-full relative">
-            <CallButton handleVideoCall={handleVideoCall} />
+            <CallButton
+              handleVideoCall={handleVideoCall}
+              handleOpenAi={() => setIsAiModalOpen(true)}
+            />
             <Window>
               <ChannelHeader />
               <MessageList />
@@ -190,6 +203,13 @@ const ChatPage = () => {
           <Thread />
         </Channel>
       </Chat>
+
+      <AiAssistantModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        partnerUser={partnerUser}
+        currentUser={authUser}
+      />
     </div>
   );
 };

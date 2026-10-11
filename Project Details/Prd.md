@@ -13,8 +13,10 @@ Learning a language from a textbook or app doesn't get you conversation practice
 ## Goals
 
 - Let a user sign up, complete onboarding, and find other users to connect with.
+- Deliver smart reciprocal partner matching based on complementary native and target languages.
+- Provide AI-assisted language tools (translation, grammar inspection, icebreakers) directly within chat.
 - Support real-time chat and video calls between connected users.
-- Manage the connection lifecycle: sending, accepting, and tracking friend requests.
+- Manage the connection lifecycle: sending, accepting, rejecting, and tracking friend requests.
 - Keep the codebase and its documentation honest about what's built versus what's planned.
 
 ## Target users
@@ -27,9 +29,10 @@ Learning a language from a textbook or app doesn't get you conversation practice
 
 - **Authentication & Security**: signup and login with JWT stored in httpOnly cookies, password hash non-disclosure (`select: false` and serializer transforms), brute-force rate limiting via `express-rate-limit`, and Helmet HTTP security headers.
 - **Onboarding & Profile Security**: required profile-completion step, gated by an `isOnboarded` flag, protected by strict field whitelisting to prevent mass assignment vulnerabilities.
-- **User discovery**: a recommended-users list surfaces other signed-up users to connect with without leaking private credentials.
+- **Smart Reciprocal Matching**: algorithmically scores potential partners based on mutual language exchange compatibility (Perfect Exchange 100%, Native Speaker 75%, Study Partner 50%), supported by name/bio search and language filter controls.
+- **Gemini AI Language Assistant**: integrated in-chat AI powered by Google's Gemini 3.8 Flash model, offering contextual translation with phonetics, grammar error checking with detailed explanations, and conversation starter prompts.
 - **Friend requests & Social Lifecycle**: users can send requests, cancel pending outgoing requests, accept or decline incoming requests, unfriend connected users, and dismiss connection notices.
 - **Responsive Layout & Navigation**: seamless mobile experience with a sticky bottom navigation bar and adaptive header alongside the desktop sidebar.
-- **Real-time chat**: one-to-one messaging via Stream Chat, restricted to authorized friend pairs, with live in-chat call notification banners and explicit socket disconnect lifecycle cleanup.
+- **Real-time chat**: one-to-one messaging via Stream Chat, restricted to authorized friend pairs, with live in-chat call notification banners, integrated AI tool launcher, and explicit socket disconnect lifecycle cleanup.
 - **Video calls**: one-to-one video calling via Stream Video with caller auto-redirect, incoming call join prompt, friendship verification, and resilient device resource cleanup.
 - **Route protection & Access Verification**: authenticated and onboarding-gated routes, backed by server-side verification endpoints for chat and video channels to prevent unauthorized access.

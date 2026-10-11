@@ -39,8 +39,8 @@ export async function getUserFriends() {
   return response.data;
 }
 
-export async function getRecommendedUsers() {
-  const response = await axiosInstance.get("/users");
+export async function getRecommendedUsers(params = {}) {
+  const response = await axiosInstance.get("/users", { params });
   return response.data;
 }
 
@@ -96,5 +96,10 @@ export async function verifyChatAccess(targetUserId) {
 
 export async function verifyCallAccess(callId) {
   const response = await axiosInstance.get(`/chat/verify-call/${callId}`);
+  return response.data;
+}
+
+export async function getAiLanguageHelp(payload) {
+  const response = await axiosInstance.post("/chat/ai-assistant", payload);
   return response.data;
 }

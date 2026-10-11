@@ -8,10 +8,20 @@ import {
   sendFriendRequest,
 } from "../lib/api";
 import { Link } from "react-router";
-import { CheckCircleIcon, MapPinIcon, UserPlusIcon, UsersIcon, XCircleIcon } from "lucide-react";
+import {
+  FilterIcon,
+  MapPinIcon,
+  RotateCcwIcon,
+  SearchIcon,
+  SparklesIcon,
+  UserPlusIcon,
+  UsersIcon,
+  XCircleIcon,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 import { capitialize } from "../lib/utils";
+import { LANGUAGES } from "../constants";
 
 import FriendCard, { getLanguageFlag } from "../components/FriendCard";
 import NoFriendsFound from "../components/NoFriendsFound";
@@ -19,6 +29,9 @@ import NoFriendsFound from "../components/NoFriendsFound";
 const HomePage = () => {
   const queryClient = useQueryClient();
   const [outgoingRequestsMap, setOutgoingRequestsMap] = useState(new Map());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("all");
+  const [selectedMatchType, setSelectedMatchType] = useState("all");
 
   const { data: friends = [], isLoading: loadingFriends } = useQuery({
     queryKey: ["friends"],
@@ -26,8 +39,13 @@ const HomePage = () => {
   });
 
   const { data: recommendedUsers = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ["users"],
-    queryFn: getRecommendedUsers,
+    queryKey: ["users", searchTerm, selectedLanguage, selectedMatchType],
+    queryFn: () =>
+      getRecommendedUsers({
+        search: searchTerm,
+        language: selectedLanguage,
+        matchType: selectedMatchType,
+      }),
   });
 
   const { data: outgoingFriendReqs } = useQuery({
@@ -95,13 +113,121 @@ const HomePage = () => {
         )}
 
         <section>
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-6 sm:mb-8 space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Meet New Learners</h2>
                 <p className="opacity-70">
-                  Discover perfect language exchange partners based on your profile
+                  Discover high-compatibility language partners ranked by reciprocal skills
                 </p>
+              </div>
+
+              {(searchTerm || selectedLanguage !== "all" || selectedMatchType !== "all") && (
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedLanguage("all");
+                    setSelectedMatchType("all");
+                  }}
+                  className="btn btn-ghost btn-sm text-xs gap-1"
+                >
+                  <RotateCcwIcon className="size-3.5" />
+                  Reset Filters
+                </button>
+              )}
+            </div>
+
+            {/* SEARCH AND FILTER BAR */}
+            <div className="bg-base-200 p-4 rounded-xl shadow-sm space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* SEARCH INPUT */}
+                <div className="relative">
+                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 opacity-50" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, bio, or city..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="input input-bordered input-sm w-full pl-9"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs opacity-60 hover:opacity-100"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {/* LANGUAGE SELECT */}
+                <div className="relative">
+                  <FilterIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 opacity-50" />
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="select select-bordered select-sm w-full pl-9"
+                  >
+                    <option value="all">All Languages</option>
+                    {LANGUAGES.map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* MATCH TYPE FILTER */}
+                <div>
+                  <select
+                    value={selectedMatchType}
+                    onChange={(e) => setSelectedMatchType(e.target.value)}
+                    className="select select-bordered select-sm w-full"
+                  >
+                    <option value="all">All Match Types</option>
+                    <option value="perfect">⭐ Perfect Exchanges (100%)</option>
+                    <option value="native">🎯 Native Speakers (75%)</option>
+                    <option value="study">📚 Study Partners (50%)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* QUICK PILLS */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                <span className="font-semibold opacity-60 mr-1">Quick Filters:</span>
+                <button
+                  onClick={() => setSelectedMatchType("all")}
+                  className={`btn btn-xs rounded-full ${
+                    selectedMatchType === "all" ? "btn-neutral" : "btn-ghost"
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setSelectedMatchType("perfect")}
+                  className={`btn btn-xs rounded-full gap-1 ${
+                    selectedMatchType === "perfect" ? "btn-primary" : "btn-outline btn-primary"
+                  }`}
+                >
+                  <SparklesIcon className="size-3" />
+                  Perfect Exchange
+                </button>
+                <button
+                  onClick={() => setSelectedMatchType("native")}
+                  className={`btn btn-xs rounded-full ${
+                    selectedMatchType === "native" ? "btn-secondary" : "btn-outline btn-secondary"
+                  }`}
+                >
+                  Native Speakers
+                </button>
+                <button
+                  onClick={() => setSelectedMatchType("study")}
+                  className={`btn btn-xs rounded-full ${
+                    selectedMatchType === "study" ? "btn-accent" : "btn-outline btn-accent"
+                  }`}
+                >
+                  Study Partners
+                </button>
               </div>
             </div>
           </div>
@@ -111,31 +237,56 @@ const HomePage = () => {
               <span className="loading loading-spinner loading-lg" />
             </div>
           ) : recommendedUsers.length === 0 ? (
-            <div className="card bg-base-200 p-6 text-center">
-              <h3 className="font-semibold text-lg mb-2">No recommendations available</h3>
-              <p className="text-base-content opacity-70">
-                Check back later for new language partners!
+            <div className="card bg-base-200 p-8 text-center space-y-3">
+              <h3 className="font-semibold text-lg">No matching learners found</h3>
+              <p className="text-base-content opacity-70 max-w-md mx-auto text-sm">
+                Try adjusting your search keywords, clearing language filters, or checking back
+                later as new members join!
               </p>
+              <div>
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedLanguage("all");
+                    setSelectedMatchType("all");
+                  }}
+                  className="btn btn-outline btn-sm gap-1"
+                >
+                  <RotateCcwIcon className="size-3.5" />
+                  Clear All Filters
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendedUsers.map((user) => {
                 const outgoingRequestId = outgoingRequestsMap.get(user._id);
                 const hasRequestBeenSent = Boolean(outgoingRequestId);
+                const isPerfect = user.matchType === "Perfect Exchange";
 
                 return (
                   <div
                     key={user._id}
-                    className="card bg-base-200 hover:shadow-lg transition-all duration-300"
+                    className={`card bg-base-200 hover:shadow-xl transition-all duration-300 relative ${
+                      isPerfect ? "border-2 border-primary/50 shadow-md" : ""
+                    }`}
                   >
+                    {isPerfect && (
+                      <div className="absolute top-3 right-3">
+                        <span className="badge badge-primary badge-sm gap-1 shadow-sm font-semibold">
+                          <SparklesIcon className="size-3" /> Top Pick
+                        </span>
+                      </div>
+                    )}
+
                     <div className="card-body p-5 space-y-4">
                       <div className="flex items-center gap-3">
-                        <div className="avatar size-16 rounded-full">
+                        <div className="avatar size-16 rounded-full ring-2 ring-primary/20">
                           <img src={user.profilePic} alt={user.fullName} />
                         </div>
 
-                        <div>
-                          <h3 className="font-semibold text-lg">{user.fullName}</h3>
+                        <div className="pr-16">
+                          <h3 className="font-semibold text-lg leading-tight">{user.fullName}</h3>
                           {user.location && (
                             <div className="flex items-center text-xs opacity-70 mt-1">
                               <MapPinIcon className="size-3 mr-1" />
@@ -143,6 +294,31 @@ const HomePage = () => {
                             </div>
                           )}
                         </div>
+                      </div>
+
+                      {/* SMART MATCH COMPATIBILITY BADGE */}
+                      <div>
+                        {user.matchType === "Perfect Exchange" ? (
+                          <span className="badge badge-primary gap-1 font-semibold text-xs py-2">
+                            <SparklesIcon className="size-3" /> 100% Reciprocal Match
+                          </span>
+                        ) : user.matchType === "Native Speaker" ? (
+                          <span className="badge badge-secondary gap-1 font-medium text-xs py-2">
+                            🎯 Native in your target language
+                          </span>
+                        ) : user.matchType === "Study Partner" ? (
+                          <span className="badge badge-accent gap-1 font-medium text-xs py-2">
+                            📚 Learning same language (50%)
+                          </span>
+                        ) : user.matchType === "Practice Partner" ? (
+                          <span className="badge badge-info gap-1 font-medium text-xs py-2">
+                            🤝 Learning your native language
+                          </span>
+                        ) : (
+                          <span className="badge badge-ghost text-xs py-2">
+                            🌐 Community Member
+                          </span>
+                        )}
                       </div>
 
                       {/* Languages with flags */}
@@ -157,7 +333,7 @@ const HomePage = () => {
                         </span>
                       </div>
 
-                      {user.bio && <p className="text-sm opacity-70">{user.bio}</p>}
+                      {user.bio && <p className="text-sm opacity-70 line-clamp-2">{user.bio}</p>}
 
                       {/* Action button */}
                       {hasRequestBeenSent ? (

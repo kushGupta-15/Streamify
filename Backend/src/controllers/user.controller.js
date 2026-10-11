@@ -5,15 +5,88 @@ export async function getRecommendedUsers(req, res) {
   try {
     const currentUserId = req.user.id;
     const currentUser = req.user;
+    const { search, language, matchType } = req.query;
 
-    const recommendedUsers = await User.find({
-      $and: [
-        { _id: { $ne: currentUserId } }, //exclude current user
-        { _id: { $nin: currentUser.friends } }, // exclude current user's friends
-        { isOnboarded: true },
-      ],
-    }).select("-password");
-    res.status(200).json(recommendedUsers);
+    const query = {
+      _id: { $ne: currentUserId, $nin: currentUser.friends || [] },
+      isOnboarded: true,
+    };
+
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), "i");
+      query.$or = [
+        { fullName: searchRegex },
+        { bio: searchRegex },
+        { location: searchRegex },
+      ];
+    }
+
+    if (language && language.trim() && language.toLowerCase() !== "all") {
+      const langRegex = new RegExp(`^${language.trim()}$`, "i");
+      const langCondition = [
+        { nativeLanguage: langRegex },
+        { learningLanguage: langRegex },
+      ];
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { $or: langCondition }];
+        delete query.$or;
+      } else {
+        query.$or = langCondition;
+      }
+    }
+
+    const rawUsers = await User.find(query).select("-password").lean();
+
+    const currentNative = (currentUser.nativeLanguage || "").toLowerCase().trim();
+    const currentLearning = (currentUser.learningLanguage || "").toLowerCase().trim();
+
+    const scoredUsers = rawUsers.map((user) => {
+      const candNative = (user.nativeLanguage || "").toLowerCase().trim();
+      const candLearning = (user.learningLanguage || "").toLowerCase().trim();
+
+      let matchScore = 15;
+      let calculatedMatchType = "Community Member";
+
+      if (
+        currentNative &&
+        currentLearning &&
+        candNative === currentLearning &&
+        candLearning === currentNative
+      ) {
+        matchScore = 100;
+        calculatedMatchType = "Perfect Exchange";
+      } else if (currentLearning && candNative === currentLearning) {
+        matchScore = 75;
+        calculatedMatchType = "Native Speaker";
+      } else if (currentLearning && candLearning === currentLearning) {
+        matchScore = 50;
+        calculatedMatchType = "Study Partner";
+      } else if (currentNative && candLearning === currentNative) {
+        matchScore = 40;
+        calculatedMatchType = "Practice Partner";
+      }
+
+      return {
+        ...user,
+        matchScore,
+        matchType: calculatedMatchType,
+      };
+    });
+
+    let filteredUsers = scoredUsers;
+    if (matchType && matchType.toLowerCase() !== "all") {
+      const typeLower = matchType.toLowerCase();
+      filteredUsers = filteredUsers.filter((u) => {
+        if (typeLower === "perfect") return u.matchType === "Perfect Exchange";
+        if (typeLower === "native") return u.matchType === "Native Speaker";
+        if (typeLower === "study") return u.matchType === "Study Partner";
+        return true;
+      });
+    }
+
+    filteredUsers.sort((a, b) => b.matchScore - a.matchScore);
+
+    res.status(200).json(filteredUsers);
   } catch (error) {
     console.error("Error in getRecommendedUsers controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });

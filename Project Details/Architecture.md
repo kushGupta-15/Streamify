@@ -6,7 +6,7 @@
 flowchart TB
     subgraph Client["Frontend — React + Vite"]
         Pages["Pages\nLogin / SignUp / Onboarding\nHome / Friends / Chat / Call / Notifications / Settings"]
-        Components["Components\nNavbar, Sidebar, FriendCard, ChatLoader, CallButton, ThemeSelector"]
+        Components["Components\nNavbar, Sidebar, FriendCard, ChatLoader, CallButton, AiAssistantModal, ThemeSelector"]
         Hooks["Hooks\nuseAuthUser, useLogin, useLogout, useSignUp"]
         Store["Store\nuseThemeStore (Zustand)"]
         APILib["lib/api.js + axios.js\nshared axios instance"]
@@ -33,22 +33,24 @@ flowchart TB
     subgraph External["External services"]
         Mongo[("MongoDB")]
         StreamAPI["Stream Chat & Video API"]
+        GeminiAPI["Google Gemini AI (3.8 Flash)"]
     end
 
     APILib -- "REST calls, httpOnly JWT cookie" --> Routes
     Models --> DBLib
     DBLib --> Mongo
     StreamLib --> StreamAPI
+    Controllers -- "Generative AI calls" --> GeminiAPI
     Components -- "Stream SDK (client-side)" --> StreamAPI
 ```
 
-The frontend never talks to Stream's API directly for auth — it calls the backend for a Stream token (`lib/stream.js`), then uses that token to connect the Stream Chat/Video client in the browser.
+The frontend never talks to Stream's API directly for auth — it calls the backend for a Stream token (`lib/stream.js`), then uses that token to connect the Stream Chat/Video client in the browser. Similarly, all AI language requests are proxied securely through the backend (`POST /api/chat/ai-assistant`) using server-side Gemini credentials.
 
 ## Technology stack
 
 **Frontend**: React, Vite, React Router, TanStack Query, Zustand (`useThemeStore`), Axios, Tailwind CSS, DaisyUI, Stream Chat & Stream Video SDKs.
 
-**Backend**: Node.js, Express, MongoDB with Mongoose, JWT (httpOnly cookies) for auth, Helmet for HTTP security headers, express-rate-limit for abuse mitigation, Stream Chat & Stream Video server SDK for token generation.
+**Backend**: Node.js, Express, MongoDB with Mongoose, JWT (httpOnly cookies) for auth, Helmet for HTTP security headers, express-rate-limit for abuse mitigation, Stream Chat & Stream Video server SDK for token generation, Google Gemini API (Gemini 3.8 Flash) for conversational language assistance.
 
 **Hosting**: Render (free tier), with a keep-alive cron job to avoid cold starts.
 
@@ -79,6 +81,31 @@ Streamify manages the complete two-way social lifecycle:
 - **1-Click Call Access**: Direct video calling shortcuts on `FriendCard` allow starting a session directly from the user's friend directory.
 - **Resource Lifecycle Management**: Stream Video and Stream Chat clients implement strict cleanup on unmount, gracefully releasing cameras, microphones, and WebSocket instances.
 
+## Smart reciprocal matching engine
+
+The recommendation system evaluates reciprocal language synergy between the authenticated user and potential partners:
+- **Scoring Tiers**:
+  - **Perfect Exchange (100% Match)**: The candidate is a native speaker of the language the user is learning, and the candidate is learning the language the user speaks natively (`userNative === candLearning && userLearning === candNative`).
+  - **Native Speaker (75% Match)**: The candidate is a native speaker of the user's target learning language (`candNative === userLearning`).
+  - **Study Partner (50% Match)**: Both users are actively learning the same target language (`candLearning === userLearning`).
+  - **Practice Partner (40% Match)**: The candidate is learning the user's native tongue (`candLearning === userNative`).
+  - **Community Member (15% Match)**: Registered, onboarded learner in the global community.
+- **Dynamic Query Filtering**:
+  - `search`: Case-insensitive regex matching across name, biography, or city.
+  - `language`: Precise filtering on either native or target languages.
+  - `matchType`: Category filtering (`perfect`, `native`, `study`).
+- **Ranking**: Matches are sorted descending by compatibility score so top partners appear first.
+
+## Gemini AI language assistant architecture
+
+- **Model & Transport**: Powered by Google's `gemini-3.8-flash` model using server-side REST requests over HTTPS with strict JSON schema enforcement (`responseMimeType: "application/json"`).
+- **Security & Privacy**: The client never sees or handles raw Gemini API credentials; requests pass through authenticated backend proxy (`POST /api/chat/ai-assistant`).
+- **Core AI Tools**:
+  1. **Instant Translation**: Nuanced conversational translation with phonetic guides, cultural context, and colloquial alternatives.
+  2. **Grammar Inspection**: Identifies grammatical errors, explains linguistic rules, and suggests natural, fluent variations.
+  3. **Contextual Icebreakers**: Generates tailored, culturally authentic conversation starter prompts and vocabulary tips for the specific language pair.
+- **Client Integration**: Rendered via `AiAssistantModal.jsx` within the active chat window, featuring one-click copy-to-clipboard actions and partner language auto-detection.
+
 ## Folder structure
 
 ```
@@ -87,8 +114,8 @@ Streamify/
 │   └── src/
 │       ├── controllers/
 │       │   ├── auth.controller.js
-│       │   ├── chat.controller.js
-│       │   └── user.controller.js
+│       │   ├── chat.controller.js # Stream token, verification & Gemini AI assistant
+│       │   └── user.controller.js # Reciprocal matching, profiles & connections
 │       ├── lib/
 │       │   ├── db.js              # MongoDB connection
 │       │   └── stream.js          # Stream token generation
@@ -106,6 +133,7 @@ Streamify/
 ├── Frontend/
 │   └── src/
 │       ├── components/
+│       │   ├── AiAssistantModal.jsx # Gemini AI tools drawer/modal
 │       │   ├── CallButton.jsx
 │       │   ├── ChatLoader.jsx
 │       │   ├── FriendCard.jsx
@@ -149,6 +177,28 @@ Streamify/
 └── README.md
 ```
 
+## Request flow example: Gemini AI language assistance
+
+```mermaid
+sequenceDiagram
+    participant U as User (browser)
+    participant M as AiAssistantModal
+    participant A as Axios instance
+    participant R as chat.route (/ai-assistant)
+    participant C as chat.controller
+    participant G as Google Gemini API (3.8 Flash)
+
+    U->>M: Enters phrase or clicks "Generate Prompts"
+    M->>A: POST /chat/ai-assistant { action, text, targetLanguage }
+    A->>R: HTTP request with httpOnly JWT cookie
+    R->>C: verify JWT and invoke aiLanguageAssistant
+    C->>G: POST /models/gemini-3.8-flash:generateContent (JSON Schema)
+    G-->>C: Returns structured JSON response
+    C-->>A: 200 { success: true, action, data }
+    A-->>M: Updates modal state with translation/corrections
+    M-->>U: Visual card rendered with 1-click copy action
+```
+
 ## Request flow example: sending a friend request
 
 ```mermaid
@@ -170,3 +220,4 @@ sequenceDiagram
     DB-->>C: saved document
     C-->>F: 201 response
     F-->>U: UI updates (request marked as sent)
+```

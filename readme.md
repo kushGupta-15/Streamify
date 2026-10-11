@@ -8,12 +8,13 @@ Streamify is a full-stack web application designed to help language learners con
 
 ## Features
 
-- **User Authentication**: Secure signup/login with JWT tokens
+- **User Authentication**: Secure signup/login with JWT tokens stored in httpOnly cookies, password hashing with bcrypt, and brute-force protection
 - **User Onboarding**: Complete profile setup with language preferences, bio, and location
-- **Smart Matching**: Discover language partners based on complementary language skills
+- **Smart Reciprocal Matching**: Discover language partners ranked by mutual compatibility (100% Perfect Exchange, 75% Native Speaker, 50% Study Partner), with real-time keyword search and language filters
+- **Gemini AI Language Tools**: Integrated in-chat AI assistant powered by Google's Gemini 3.8 Flash for instant translation with phonetics, grammar error checking with explanations, and contextual conversation icebreakers
 - **Friend System**: Send, accept, decline, or cancel friend requests, unfriend partners, and dismiss notices
-- **Real-time Chat**: Instant messaging powered by Stream Chat
-- **Video Calling**: High-quality video calls using Stream Video SDK
+- **Real-time Chat**: Instant messaging powered by Stream Chat with participant authorization
+- **Video Calling**: High-quality video calls using Stream Video SDK with 1-click friend call access and in-chat call notification prompts
 - **Responsive Design**: Mobile-friendly interface with mobile bottom navigation, DaisyUI, and Tailwind CSS
 - **Theme Support**: Multiple UI themes for personalized experience
 
@@ -36,6 +37,7 @@ Streamify is a full-stack web application designed to help language learners con
 - **Express.js** - Web application framework
 - **MongoDB** - NoSQL database
 - **Mongoose** - MongoDB object modeling
+- **Google Gemini API** - Conversational AI language assistant (`gemini-3.8-flash`)
 - **Stream Chat** - Chat backend service
 - **JWT** - Authentication tokens
 - **bcryptjs** - Password hashing
@@ -78,6 +80,7 @@ STEAM_API_KEY=your_stream_api_key
 STEAM_API_SECRET=your_stream_api_secret
 JWT_SECRET_KEY=your_jwt_secret_key
 NODE_ENV=development
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 #### Frontend Environment (.env in Frontend folder)
@@ -143,7 +146,7 @@ npm start
 
 ### Users
 *All routes below require authentication.*
-- `GET /api/users/` - Get recommended language partners
+- `GET /api/users?search=&language=&matchType=` - Get recommended partners ranked by reciprocal compatibility
 - `GET /api/users/friends` - Get user's friends list
 - `DELETE /api/users/friends/:id` - Unfriend a connected user
 - `POST /api/users/friend-request/:id` - Send a friend request to user `:id`
@@ -154,10 +157,11 @@ npm start
 - `PUT /api/users/friend-requests/:id/dismiss` - Dismiss an accepted connection notification
 - `GET /api/users/outgoing-friend-requests` - Get friend requests sent by current user (pending)
 
-### Chat & Video
+### Chat, Video & AI Language Tools
 - `GET /api/chat/token` - Get Stream chat token
 - `GET /api/chat/verify/:targetUserId` - Verify friendship access before joining private chat
 - `GET /api/chat/verify-call/:callId` - Verify participant authorization before joining video call
+- `POST /api/chat/ai-assistant` - Gemini AI language assistance (`translate`, `grammar-check`, `icebreakers`)
 
 ## Project Structure
 
