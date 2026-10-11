@@ -1,6 +1,64 @@
 # Streamify
 
-A modern language exchange platform that connects language learners worldwide through real-time chat and video calling. Built with React, Node.js, and Stream.io for seamless communication experiences.
+A modern language exchange platform connecting language learners worldwide through smart reciprocal matching, real-time messaging, video calling, and Gemini AI language tools.
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-streamify--2--ezk2.onrender.com-success?style=for-the-badge&logo=render)](https://streamify-2-ezk2.onrender.com)
+[![React 19](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://react.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-v26-green?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+[![Gemini AI](https://img.shields.io/badge/Google_Gemini-3.8_Flash-orange?style=for-the-badge&logo=google)](https://ai.google.dev/)
+[![Stream.io](https://img.shields.io/badge/Stream-Chat_%26_Video-005FFF?style=for-the-badge&logo=stream)](https://getstream.io/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client["Frontend — React 19 + Vite"]
+        Pages["Pages\nLogin / SignUp / Onboarding\nHome / Friends / Chat / Call / Notifications / Settings"]
+        Components["Components\nNavbar, Sidebar, FriendCard, ChatLoader, CallButton, AiAssistantModal, ThemeSelector"]
+        Hooks["Hooks\nuseAuthUser, useLogin, useLogout, useSignUp"]
+        Store["Store\nuseThemeStore (Zustand)"]
+        APILib["lib/api.js + axios.js\nshared axios instance"]
+        Pages --> Components
+        Pages --> Hooks
+        Pages --> Store
+        Hooks --> APILib
+    end
+
+    subgraph Server["Backend — Node.js + Express"]
+        Routes["Routes\nauth.route / user.route / chat.route"]
+        Middleware["auth.middleware.js\nJWT verification & route protection"]
+        Controllers["Controllers\nauth.controller / user.controller / chat.controller"]
+        Models["Models\nUser, FriendRequest (Compound Indexed)"]
+        StreamLib["lib/stream.js\nStream token generation"]
+        DBLib["lib/db.js\nMongoDB connection"]
+
+        Routes --> Middleware
+        Middleware --> Controllers
+        Controllers --> Models
+        Controllers --> StreamLib
+    end
+
+    subgraph External["External Cloud Services"]
+        Mongo[("MongoDB Atlas Database")]
+        StreamAPI["Stream Chat & Video SDK (WebSockets / WebRTC)"]
+        GeminiAPI["Google Gemini 3.8 Flash API (Generative AI)"]
+        CloudinaryAPI["Cloudinary CDN (Avatar Transforms & Storage)"]
+    end
+
+    APILib -- "REST calls with httpOnly JWT cookie" --> Routes
+    Models --> DBLib
+    DBLib --> Mongo
+    StreamLib --> StreamAPI
+    Controllers -- "Translation, Grammar, Icebreakers" --> GeminiAPI
+    Controllers -- "Face-centered crop & upload" --> CloudinaryAPI
+    Components -- "Stream Video & Chat Client SDK" --> StreamAPI
+```
+
+---
 
 ## Description
 
