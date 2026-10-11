@@ -88,3 +88,13 @@ export async function getStreamToken() {
   const response = await axiosInstance.get("/chat/token");
   return response.data;
 }
+
+export async function verifyChatAccess(targetUserId) {
+  const response = await axiosInstance.get(`/chat/verify/${targetUserId}`);
+  return response.data;
+}
+
+export async function verifyCallAccess(callId) {
+  const response = await axiosInstance.get(`/chat/verify-call/${callId}`);
+  return response.data;
+}

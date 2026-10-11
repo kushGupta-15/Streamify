@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { MessageSquareIcon, UserMinusIcon } from "lucide-react";
+import { MessageSquareIcon, UserMinusIcon, VideoIcon } from "lucide-react";
 import { unfriendUser } from "../lib/api";
 import { LANGUAGE_TO_FLAG } from "../constants";
+import useAuthUser from "../hooks/useAuthUser";
 import toast from "react-hot-toast";
 
 const FriendCard = ({ friend }) => {
   const queryClient = useQueryClient();
+  const { authUser } = useAuthUser();
   const [isConfirming, setIsConfirming] = useState(false);
+
+  const callId = authUser?._id && friend?._id ? [authUser._id, friend._id].sort().join("-") : null;
 
   const { mutate: unfriendMutation, isPending } = useMutation({
     mutationFn: () => unfriendUser(friend._id),
@@ -49,6 +53,16 @@ const FriendCard = ({ friend }) => {
             <MessageSquareIcon className="size-4 mr-1" />
             Message
           </Link>
+
+          {callId && (
+            <Link
+              to={`/call/${callId}`}
+              className="btn btn-outline btn-success btn-sm btn-square"
+              title="Start Video Call"
+            >
+              <VideoIcon className="size-4" />
+            </Link>
+          )}
 
           {isConfirming ? (
             <div className="flex items-center gap-1">

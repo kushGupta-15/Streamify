@@ -154,8 +154,10 @@ npm start
 - `PUT /api/users/friend-requests/:id/dismiss` - Dismiss an accepted connection notification
 - `GET /api/users/outgoing-friend-requests` - Get friend requests sent by current user (pending)
 
-### Chat
+### Chat & Video
 - `GET /api/chat/token` - Get Stream chat token
+- `GET /api/chat/verify/:targetUserId` - Verify friendship access before joining private chat
+- `GET /api/chat/verify-call/:callId` - Verify participant authorization before joining video call
 
 ## Project Structure
 

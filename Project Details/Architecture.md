@@ -71,6 +71,14 @@ Streamify manages the complete two-way social lifecycle:
 - **Notification Dismissal**: Senders can dismiss accepted connection notices to keep their notifications view clean.
 - **Responsive Navigation**: Adaptive view layout presenting a sticky sidebar on large screens (`lg+`) and an accessible mobile bottom navigation bar (`< lg`) alongside an adaptive top navbar with brand branding.
 
+## Video calling & real-time communication architecture
+
+- **Channel & Call Authorization**: Gated by server-side verification (`/api/chat/verify/:targetUserId` and `/api/chat/verify-call/:callId`). Unauthorized users attempting to navigate to private chats or call rooms are blocked.
+- **Immediate Caller Routing**: Initiating a video call automatically publishes a call invite to the chat channel and smoothly navigates the caller directly into the Stream Video call room.
+- **Real-Time Incoming Call Prompts**: The chat channel registers a real-time `message.new` listener that intercepts incoming call invitations and displays an interactive floating banner with direct **Join Call** and **Dismiss** controls.
+- **1-Click Call Access**: Direct video calling shortcuts on `FriendCard` allow starting a session directly from the user's friend directory.
+- **Resource Lifecycle Management**: Stream Video and Stream Chat clients implement strict cleanup on unmount, gracefully releasing cameras, microphones, and WebSocket instances.
+
 ## Folder structure
 
 ```

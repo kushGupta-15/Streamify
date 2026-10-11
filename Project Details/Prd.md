@@ -30,6 +30,6 @@ Learning a language from a textbook or app doesn't get you conversation practice
 - **User discovery**: a recommended-users list surfaces other signed-up users to connect with without leaking private credentials.
 - **Friend requests & Social Lifecycle**: users can send requests, cancel pending outgoing requests, accept or decline incoming requests, unfriend connected users, and dismiss connection notices.
 - **Responsive Layout & Navigation**: seamless mobile experience with a sticky bottom navigation bar and adaptive header alongside the desktop sidebar.
-- **Real-time chat**: one-to-one messaging via Stream Chat, once two users are connected, with explicit socket disconnect lifecycle cleanup.
-- **Video calls**: one-to-one video calling via Stream Video with resilient token state handling and call cleanup on unmount.
-- **Route protection**: authenticated and onboarding-gated routes, enforced in the frontend router with explicit 401 handling for expired sessions.
+- **Real-time chat**: one-to-one messaging via Stream Chat, restricted to authorized friend pairs, with live in-chat call notification banners and explicit socket disconnect lifecycle cleanup.
+- **Video calls**: one-to-one video calling via Stream Video with caller auto-redirect, incoming call join prompt, friendship verification, and resilient device resource cleanup.
+- **Route protection & Access Verification**: authenticated and onboarding-gated routes, backed by server-side verification endpoints for chat and video channels to prevent unauthorized access.

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
 import { useQuery } from "@tanstack/react-query";
-import { getStreamToken } from "../lib/api";
+import { getStreamToken, verifyCallAccess } from "../lib/api";
 
 import {
   StreamVideo,
@@ -23,16 +23,24 @@ const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
 const CallPage = () => {
   const { id: callId } = useParams();
+  const navigate = useNavigate();
   const [client, setClient] = useState(null);
   const [call, setCall] = useState(null);
   const [isConnecting, setIsConnecting] = useState(true);
 
   const { authUser, isLoading } = useAuthUser();
 
+  const { data: callAccess, isLoading: checkingCallAccess, error: callAccessError } = useQuery({
+    queryKey: ["callAccess", callId],
+    queryFn: () => verifyCallAccess(callId),
+    enabled: !!authUser && !!callId,
+    retry: false,
+  });
+
   const { data: tokenData } = useQuery({
     queryKey: ["streamToken"],
     queryFn: getStreamToken,
-    enabled: !!authUser,
+    enabled: !!authUser && callAccess?.allowed === true,
   });
 
   useEffect(() => {
@@ -40,7 +48,7 @@ const CallPage = () => {
     let videoClient;
 
     const initCall = async () => {
-      if (!tokenData?.token || !authUser || !callId) return;
+      if (!tokenData?.token || !authUser || !callId || callAccess?.allowed !== true) return;
 
       try {
         console.log("Initializing Stream video client...");
@@ -83,9 +91,27 @@ const CallPage = () => {
         videoClient.disconnectUser().catch((err) => console.error("Error disconnecting video client:", err));
       }
     };
-  }, [tokenData, authUser, callId]);
+  }, [tokenData, authUser, callId, callAccess]);
 
-  if (isLoading || isConnecting) return <PageLoader />;
+  if (checkingCallAccess || isLoading || (isConnecting && !callAccessError && callAccess?.allowed === true)) {
+    return <PageLoader />;
+  }
+
+  if (callAccessError || callAccess?.allowed === false) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div className="card bg-base-200 max-w-md p-6 shadow-md">
+          <h2 className="text-xl font-bold mb-2">Access Restricted</h2>
+          <p className="opacity-70 mb-4">
+            You must be an authorized friend to join this call room.
+          </p>
+          <button onClick={() => navigate("/")} className="btn btn-primary">
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col items-center justify-center">
