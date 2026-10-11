@@ -63,6 +63,10 @@ const userSchema = new mongoose.Schema({
     }
 });
 
+userSchema.index({ nativeLanguage: 1, learningLanguage: 1, isOnboarded: 1 });
+userSchema.index({ isOnboarded: 1, _id: 1 });
+userSchema.index({ fullName: "text", bio: "text", location: "text" });
+
 
 //pre hook
 userSchema.pre("save", async function(next){

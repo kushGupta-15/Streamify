@@ -34,6 +34,7 @@ flowchart TB
         Mongo[("MongoDB")]
         StreamAPI["Stream Chat & Video API"]
         GeminiAPI["Google Gemini AI (3.8 Flash)"]
+        CloudinaryAPI["Cloudinary Media Storage"]
     end
 
     APILib -- "REST calls, httpOnly JWT cookie" --> Routes
@@ -41,18 +42,19 @@ flowchart TB
     DBLib --> Mongo
     StreamLib --> StreamAPI
     Controllers -- "Generative AI calls" --> GeminiAPI
+    Controllers -- "Avatar uploads & transforms" --> CloudinaryAPI
     Components -- "Stream SDK (client-side)" --> StreamAPI
 ```
 
-The frontend never talks to Stream's API directly for auth — it calls the backend for a Stream token (`lib/stream.js`), then uses that token to connect the Stream Chat/Video client in the browser. Similarly, all AI language requests are proxied securely through the backend (`POST /api/chat/ai-assistant`) using server-side Gemini credentials.
+The frontend never talks to Stream's API directly for auth — it calls the backend for a Stream token (`lib/stream.js`), then uses that token to connect the Stream Chat/Video client in the browser. Similarly, all AI language requests are proxied securely through the backend (`POST /api/chat/ai-assistant`) using server-side Gemini credentials, and profile avatars are handled via Cloudinary (`lib/cloudinary.js`).
 
 ## Technology stack
 
-**Frontend**: React, Vite, React Router, TanStack Query, Zustand (`useThemeStore`), Axios, Tailwind CSS, DaisyUI, Stream Chat & Stream Video SDKs.
+**Frontend**: React, Vite, React Router, TanStack Query, Zustand (`useThemeStore`), Axios, Tailwind CSS, DaisyUI, Stream Chat & Stream Video SDKs, Vitest for unit & integration testing.
 
-**Backend**: Node.js, Express, MongoDB with Mongoose, JWT (httpOnly cookies) for auth, Helmet for HTTP security headers, express-rate-limit for abuse mitigation, Stream Chat & Stream Video server SDK for token generation, Google Gemini API (Gemini 3.8 Flash) for conversational language assistance.
+**Backend**: Node.js, Express, MongoDB with Mongoose, JWT (httpOnly cookies) for auth, Helmet for HTTP security headers, express-rate-limit for abuse mitigation, Cloudinary SDK for profile media optimization, Stream Chat & Stream Video server SDK for token generation, Google Gemini API (Gemini 3.8 Flash) for conversational language assistance.
 
-**Hosting**: Render (free tier), with a keep-alive cron job to avoid cold starts.
+**Hosting & DevOps**: Render Blueprint (`render.yaml`), Node test runner (`node:test`), with a keep-alive cron job to avoid cold starts.
 
 ## Security architecture
 
@@ -106,73 +108,91 @@ The recommendation system evaluates reciprocal language synergy between the auth
   3. **Contextual Icebreakers**: Generates tailored, culturally authentic conversation starter prompts and vocabulary tips for the specific language pair.
 - **Client Integration**: Rendered via `AiAssistantModal.jsx` within the active chat window, featuring one-click copy-to-clipboard actions and partner language auto-detection.
 
+## Cloud media storage & avatar pipeline
+
+- **Cloudinary Integration**: Configured in `lib/cloudinary.js` using `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
+- **Upload Transformations**: Base64 device uploads are automatically resized and cropped around detected facial features (`width: 256, height: 256, crop: "fill", gravity: "face"`) with automated WebP format negotiation (`quality: "auto", fetch_format: "auto"`).
+- **Client-Side Validation**: Both onboarding and settings pages enforce image type validation (`image/*`) and strict 5MB file size boundaries before FileReader encoding.
+- **Resilient Fallback**: If Cloudinary credentials are omitted or temporarily unavailable, avatars safely persist or default to generated Dicebear/Liara SVG avatars without service disruption.
+
+## Database compound indexes & query optimization
+
+- **`FriendRequest` Collection**:
+  - `{ sender: 1, recipient: 1 }`: Accelerated lookup for connection existence checks.
+  - `{ recipient: 1, status: 1 }`: Speeds up incoming friend requests queries.
+  - `{ sender: 1, status: 1 }`: Optimizes outgoing pending requests queries.
+  - `{ recipient: 1, status: 1, dismissed: 1 }`: Fast index scan for notification badge lists.
+- **`User` Collection**:
+  - `{ nativeLanguage: 1, learningLanguage: 1, isOnboarded: 1 }`: Optimized index for reciprocal language partner discovery.
+  - `{ isOnboarded: 1, _id: 1 }`: Rapid exclusion scans for recommended user suggestions.
+  - `{ fullName: "text", bio: "text", location: "text" }`: Full-text search support.
+
+## Automated test suite & deployment architecture
+
+- **Frontend Testing**: Vitest test suites (`Frontend/src/test/`) covering reciprocal matching scoring tiers and UI utility transformations.
+- **Backend Testing**: Node.js test runner (`node:test`) covering Cloudinary helpers, call authorization parsers, and AI payload validators.
+- **Root Test Command**: `npm test` runs all backend and frontend suites concurrently with exit code validation.
+- **Production Blueprint**: `render.yaml` infrastructure-as-code manifest declaring build, runtime, and environment variables for deployment on Render.
+
 ## Folder structure
 
 ```
 Streamify/
 ├── Backend/
-│   └── src/
-│       ├── controllers/
-│       │   ├── auth.controller.js
-│       │   ├── chat.controller.js # Stream token, verification & Gemini AI assistant
-│       │   └── user.controller.js # Reciprocal matching, profiles & connections
-│       ├── lib/
-│       │   ├── db.js              # MongoDB connection
-│       │   └── stream.js          # Stream token generation
-│       ├── middleware/
-│       │   └── auth.middleware.js # JWT verification, protects routes
-│       ├── models/
-│       │   ├── FriendRequest.js
-│       │   └── User.js
-│       ├── routes/
-│       │   ├── auth.route.js
-│       │   ├── chat.route.js
-│       │   └── user.route.js
-│       └── server.js              # entry point
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── auth.controller.js # Profile updates & Cloudinary media integration
+│   │   │   ├── chat.controller.js # Stream token, verification & Gemini AI assistant
+│   │   │   └── user.controller.js # Reciprocal matching, profiles & connections
+│   │   ├── lib/
+│   │   │   ├── cloudinary.js      # Cloudinary SDK initialization & checks
+│   │   │   ├── db.js              # MongoDB connection
+│   │   │   └── stream.js          # Stream token generation
+│   │   ├── middleware/
+│   │   │   └── auth.middleware.js # JWT verification, protects routes
+│   │   ├── models/
+│   │   │   ├── FriendRequest.js   # Compound indexed connection model
+│   │   │   └── User.js            # Compound indexed learner model
+│   │   ├── routes/
+│   │   │   ├── auth.route.js
+│   │   │   ├── chat.route.js
+│   │   │   └── user.route.js
+│   │   └── server.js              # entry point
+│   ├── test/
+│   │   └── unit.test.js           # Backend node:test test suite
+│   ├── package.json
+│   └── .env
 │
 ├── Frontend/
-│   └── src/
-│       ├── components/
-│       │   ├── AiAssistantModal.jsx # Gemini AI tools drawer/modal
-│       │   ├── CallButton.jsx
-│       │   ├── ChatLoader.jsx
-│       │   ├── FriendCard.jsx
-│       │   ├── Layout.jsx
-│       │   ├── MobileBottomNav.jsx
-│       │   ├── Navbar.jsx
-│       │   ├── NoFriendsFound.jsx
-│       │   ├── NoNotificationsFound.jsx
-│       │   ├── PageLoader.jsx
-│       │   ├── Sidebar.jsx
-│       │   └── ThemeSelector.jsx
-│       ├── constants/
-│       ├── hooks/
-│       │   ├── useAuthUser.js
-│       │   ├── useLogin.js
-│       │   ├── useLogout.js
-│       │   └── useSignUp.js
-│       ├── lib/
-│       │   ├── api.js             # API call wrappers
-│       │   ├── axios.js           # shared axios instance
-│       │   └── utils.js
-│       ├── pages/
-│       │   ├── CallPage.jsx
-│       │   ├── ChatPage.jsx
-│       │   ├── FriendsPage.jsx
-│       │   ├── HomePage.jsx
-│       │   ├── LoginPage.jsx
-│       │   ├── NotificationsPage.jsx
-│       │   ├── OnboardingPage.jsx
-│       │   ├── SettingsPage.jsx
-│       │   └── SignUpPage.jsx
-│       ├── store/
-│       │   └── useThemeStore.js
-│       ├── App.jsx                # routing, route guards
-│       └── main.jsx                # entry point
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── AiAssistantModal.jsx # Gemini AI tools drawer/modal
+│   │   │   ├── CallButton.jsx
+│   │   │   ├── ChatLoader.jsx
+│   │   │   ├── FriendCard.jsx
+│   │   │   ├── Layout.jsx
+│   │   │   ├── MobileBottomNav.jsx
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── NoFriendsFound.jsx
+│   │   │   ├── NoNotificationsFound.jsx
+│   │   │   ├── PageLoader.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   └── ThemeSelector.jsx
+│   │   ├── constants/
+│   │   ├── hooks/
+│   │   ├── lib/
+│   │   ├── pages/
+│   │   ├── store/
+│   │   ├── test/
+│   │   │   ├── matching.test.js   # Reciprocal matching Vitest suite
+│   │   │   └── utils.test.js      # Utility Vitest suite
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   └── .env
 │
 ├── Project Details/
-├── .env
-├── .gitignore
+├── render.yaml                    # Production deployment blueprint
 ├── package.json
 └── README.md
 ```

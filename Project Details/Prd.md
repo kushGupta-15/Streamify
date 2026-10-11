@@ -17,6 +17,8 @@ Learning a language from a textbook or app doesn't get you conversation practice
 - Provide AI-assisted language tools (translation, grammar inspection, icebreakers) directly within chat.
 - Support real-time chat and video calls between connected users.
 - Manage the connection lifecycle: sending, accepting, rejecting, and tracking friend requests.
+- Provide cloud-optimized media storage with automated face cropping and responsive avatars.
+- Ensure database scalability via targeted compound indexes and robust automated testing suites.
 - Keep the codebase and its documentation honest about what's built versus what's planned.
 
 ## Target users
@@ -29,6 +31,7 @@ Learning a language from a textbook or app doesn't get you conversation practice
 
 - **Authentication & Security**: signup and login with JWT stored in httpOnly cookies, password hash non-disclosure (`select: false` and serializer transforms), brute-force rate limiting via `express-rate-limit`, and Helmet HTTP security headers.
 - **Onboarding & Profile Security**: required profile-completion step, gated by an `isOnboarded` flag, protected by strict field whitelisting to prevent mass assignment vulnerabilities.
+- **Cloud Media Storage & Avatar Pipeline**: Cloudinary integration for profile picture optimization, with automatic facial detection crop, format/quality auto-negotiation, and 5MB client validation with resilient fallback.
 - **Smart Reciprocal Matching**: algorithmically scores potential partners based on mutual language exchange compatibility (Perfect Exchange 100%, Native Speaker 75%, Study Partner 50%), supported by name/bio search and language filter controls.
 - **Gemini AI Language Assistant**: integrated in-chat AI powered by Google's Gemini 3.8 Flash model, offering contextual translation with phonetics, grammar error checking with detailed explanations, and conversation starter prompts.
 - **Friend requests & Social Lifecycle**: users can send requests, cancel pending outgoing requests, accept or decline incoming requests, unfriend connected users, and dismiss connection notices.
@@ -36,3 +39,5 @@ Learning a language from a textbook or app doesn't get you conversation practice
 - **Real-time chat**: one-to-one messaging via Stream Chat, restricted to authorized friend pairs, with live in-chat call notification banners, integrated AI tool launcher, and explicit socket disconnect lifecycle cleanup.
 - **Video calls**: one-to-one video calling via Stream Video with caller auto-redirect, incoming call join prompt, friendship verification, and resilient device resource cleanup.
 - **Route protection & Access Verification**: authenticated and onboarding-gated routes, backed by server-side verification endpoints for chat and video channels to prevent unauthorized access.
+- **Database Index Optimization**: compound indexing on `FriendRequest` (`sender`/`recipient`, `recipient`/`status`, `dismissed`) and `User` (`nativeLanguage`/`learningLanguage`/`isOnboarded`, text index) for high-efficiency querying.
+- **Automated Test Coverage**: Vitest suites for frontend logic and matching algorithms, and Node.js test runner for backend permissions and media pipelines.

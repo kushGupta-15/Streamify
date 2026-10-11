@@ -9,13 +9,15 @@ Streamify is a full-stack web application designed to help language learners con
 ## Features
 
 - **User Authentication**: Secure signup/login with JWT tokens stored in httpOnly cookies, password hashing with bcrypt, and brute-force protection
-- **User Onboarding**: Complete profile setup with language preferences, bio, and location
+- **User Onboarding**: Complete profile setup with language preferences, bio, location, and device photo uploads
+- **Cloud Media Storage**: Cloudinary integration for profile avatars featuring automated face-centering crop, auto-format optimization, and 5MB client-side validation
 - **Smart Reciprocal Matching**: Discover language partners ranked by mutual compatibility (100% Perfect Exchange, 75% Native Speaker, 50% Study Partner), with real-time keyword search and language filters
 - **Gemini AI Language Tools**: Integrated in-chat AI assistant powered by Google's Gemini 3.8 Flash for instant translation with phonetics, grammar error checking with explanations, and contextual conversation icebreakers
 - **Friend System**: Send, accept, decline, or cancel friend requests, unfriend partners, and dismiss notices
 - **Real-time Chat**: Instant messaging powered by Stream Chat with participant authorization
 - **Video Calling**: High-quality video calls using Stream Video SDK with 1-click friend call access and in-chat call notification prompts
 - **Responsive Design**: Mobile-friendly interface with mobile bottom navigation, DaisyUI, and Tailwind CSS
+- **Automated Testing**: Vitest and Node test runner covering matching algorithms, security verification, and media utilities
 - **Theme Support**: Multiple UI themes for personalized experience
 
 ## Tech Stack
@@ -23,6 +25,7 @@ Streamify is a full-stack web application designed to help language learners con
 ### Frontend
 - **React 19** - Modern UI library
 - **Vite** - Fast build tool and dev server
+- **Vitest** - Unit and integration testing
 - **React Router** - Client-side routing
 - **Tailwind CSS** - Utility-first CSS framework
 - **DaisyUI** - Component library for Tailwind
@@ -37,6 +40,7 @@ Streamify is a full-stack web application designed to help language learners con
 - **Express.js** - Web application framework
 - **MongoDB** - NoSQL database
 - **Mongoose** - MongoDB object modeling
+- **Cloudinary** - Media asset cloud storage & transformations
 - **Google Gemini API** - Conversational AI language assistant (`gemini-3.8-flash`)
 - **Stream Chat** - Chat backend service
 - **JWT** - Authentication tokens
@@ -81,6 +85,9 @@ STEAM_API_SECRET=your_stream_api_secret
 JWT_SECRET_KEY=your_jwt_secret_key
 NODE_ENV=development
 GEMINI_API_KEY=your_gemini_api_key
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name # optional for cloud media uploads
+CLOUDINARY_API_KEY=your_cloudinary_api_key       # optional
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret # optional
 ```
 
 #### Frontend Environment (.env in Frontend folder)
@@ -108,6 +115,15 @@ cd Frontend
 npm run dev
 ```
 The frontend will run on `http://localhost:5173`
+
+### Running Automated Tests
+Run both backend and frontend test suites from the root repository:
+```bash
+npm test
+```
+Or run individually:
+- Backend: `npm test --prefix Backend` (Node.js test runner)
+- Frontend: `npm test --prefix Frontend` (Vitest)
 
 ### Production Mode
 

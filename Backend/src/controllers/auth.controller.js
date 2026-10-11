@@ -1,6 +1,33 @@
 import { upsertStreamUser } from "../lib/stream.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import cloudinary, { isCloudinaryConfigured } from "../lib/cloudinary.js";
+
+async function processProfilePicture(picString) {
+  if (!picString || typeof picString !== "string") return null;
+
+  if (picString.startsWith("http://") || picString.startsWith("https://")) {
+    return picString;
+  }
+
+  if (picString.startsWith("data:image/") && isCloudinaryConfigured()) {
+    try {
+      const uploadRes = await cloudinary.uploader.upload(picString, {
+        folder: "streamify_profiles",
+        transformation: [
+          { width: 256, height: 256, crop: "fill", gravity: "face" },
+          { quality: "auto", fetch_format: "auto" },
+        ],
+      });
+      return uploadRes.secure_url;
+    } catch (uploadErr) {
+      console.error("Cloudinary upload failed, using original data:", uploadErr.message);
+      return picString;
+    }
+  }
+
+  return picString;
+}
 
 export async function signup(req, res) {
   const { email, password, fullName } = req.body;
@@ -112,7 +139,7 @@ export async function onboard(req, res) {
   try {
     const userId = req.user._id;
 
-    const { fullName, bio, nativeLanguage, learningLanguage, location } = req.body;
+    const { fullName, bio, nativeLanguage, learningLanguage, location, profilePic } = req.body;
 
     if (!fullName || !bio || !nativeLanguage || !learningLanguage || !location) {
       return res.status(400).json({
@@ -127,18 +154,23 @@ export async function onboard(req, res) {
       });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        fullName,
-        bio,
-        nativeLanguage,
-        learningLanguage,
-        location,
-        isOnboarded: true,
-      },
-      { new: true }
-    );
+    const updateFields = {
+      fullName,
+      bio,
+      nativeLanguage,
+      learningLanguage,
+      location,
+      isOnboarded: true,
+    };
+
+    if (profilePic) {
+      const processedPic = await processProfilePicture(profilePic);
+      if (processedPic) {
+        updateFields.profilePic = processedPic;
+      }
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateFields, { new: true });
 
     if (!updatedUser) return res.status(404).json({ message: "User not found" });
 
@@ -171,7 +203,10 @@ export async function updateProfile(req, res) {
     if (nativeLanguage !== undefined) updateData.nativeLanguage = nativeLanguage;
     if (learningLanguage !== undefined) updateData.learningLanguage = learningLanguage;
     if (location !== undefined) updateData.location = location;
-    if (profilePic !== undefined) updateData.profilePic = profilePic;
+
+    if (profilePic !== undefined) {
+      updateData.profilePic = await processProfilePicture(profilePic);
+    }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
     if (!updatedUser) return res.status(404).json({ message: "User not found" });
