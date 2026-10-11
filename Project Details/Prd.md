@@ -25,10 +25,10 @@ Learning a language from a textbook or app doesn't get you conversation practice
 
 ## Core features
 
-- **Authentication**: signup and login with JWT stored in httpOnly cookies.
-- **Onboarding**: a required profile-completion step, gated by an `isOnboarded` flag before a user can access the main app.
-- **User discovery**: a recommended-users list surfaces other signed-up users to connect with.
+- **Authentication & Security**: signup and login with JWT stored in httpOnly cookies, password hash non-disclosure (`select: false` and serializer transforms), brute-force rate limiting via `express-rate-limit`, and Helmet HTTP security headers.
+- **Onboarding & Profile Security**: required profile-completion step, gated by an `isOnboarded` flag, protected by strict field whitelisting to prevent mass assignment vulnerabilities.
+- **User discovery**: a recommended-users list surfaces other signed-up users to connect with without leaking private credentials.
 - **Friend requests**: users can send a request; the recipient can accept it. (Rejection is not yet supported — only `pending` and `accepted` states currently exist.)
-- **Real-time chat**: one-to-one messaging via Stream Chat, once two users are connected.
-- **Video calls**: one-to-one video calling via Stream Video.
-- **Route protection**: authenticated and onboarding-gated routes, enforced in the frontend router.
+- **Real-time chat**: one-to-one messaging via Stream Chat, once two users are connected, with explicit socket disconnect lifecycle cleanup.
+- **Video calls**: one-to-one video calling via Stream Video with resilient token state handling and call cleanup on unmount.
+- **Route protection**: authenticated and onboarding-gated routes, enforced in the frontend router with explicit 401 handling for expired sessions.

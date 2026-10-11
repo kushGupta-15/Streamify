@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
     password:{
         type:String,
         required:true,
-        minlength:6
+        minlength:6,
+        select:false
     },
     bio:{
         type:String,
@@ -46,7 +47,21 @@ const userSchema = new mongoose.Schema({
             ref:"User"
         }
     ]
-} , {timestamps:true});
+} , {
+    timestamps:true,
+    toJSON: {
+        transform: function(doc, ret) {
+            delete ret.password;
+            return ret;
+        }
+    },
+    toObject: {
+        transform: function(doc, ret) {
+            delete ret.password;
+            return ret;
+        }
+    }
+});
 
 
 //pre hook

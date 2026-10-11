@@ -37,13 +37,15 @@ const ChatPage = () => {
   });
 
   useEffect(() => {
+    let client;
+
     const initChat = async () => {
       if (!tokenData?.token || !authUser) return;
 
       try {
         console.log("Initializing stream chat client...");
 
-        const client = StreamChat.getInstance(STREAM_API_KEY);
+        client = StreamChat.getInstance(STREAM_API_KEY);
 
         await client.connectUser(
           {
@@ -78,6 +80,12 @@ const ChatPage = () => {
     };
 
     initChat();
+
+    return () => {
+      if (client) {
+        client.disconnectUser().catch((err) => console.error("Error disconnecting chat client:", err));
+      }
+    };
   }, [tokenData, authUser, targetUserId]);
 
   const handleVideoCall = () => {

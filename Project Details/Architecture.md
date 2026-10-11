@@ -48,9 +48,18 @@ The frontend never talks to Stream's API directly for auth — it calls the back
 
 **Frontend**: React, Vite, React Router, TanStack Query, Zustand (`useThemeStore`), Axios, Tailwind CSS, DaisyUI, Stream Chat & Stream Video SDKs.
 
-**Backend**: Node.js, Express, MongoDB with Mongoose, JWT (httpOnly cookies) for auth, Stream Chat & Stream Video server SDK for token generation.
+**Backend**: Node.js, Express, MongoDB with Mongoose, JWT (httpOnly cookies) for auth, Helmet for HTTP security headers, express-rate-limit for abuse mitigation, Stream Chat & Stream Video server SDK for token generation.
 
 **Hosting**: Render (free tier), with a keep-alive cron job to avoid cold starts.
+
+## Security architecture
+
+- **Password Protection**: Passwords are hashed with bcrypt (salt rounds = 10) and configured with `select: false` in the Mongoose schema. In addition, Mongoose `toJSON` and `toObject` transforms ensure password hashes are never serialized or leaked across API responses.
+- **HTTP Security Headers**: Powered by `helmet` to mitigate clickjacking, MIME-sniffing, and cross-site scripting risks.
+- **Rate Limiting**: Tiered rate limiters via `express-rate-limit` guard `/api/auth/login` and `/api/auth/signup` against credential stuffing and brute-force attacks, alongside an umbrella API rate limiter.
+- **Mass Assignment Prevention**: Strict field whitelisting in profile update and onboarding controllers prevents arbitrary field manipulation (e.g. unauthorized friend array tampering or internal flags).
+- **CORS Protection**: Dynamic origin checking matching trusted development ports (`http://localhost:5173`, `http://localhost:3000`) and production `CLIENT_URL`.
+- **JWT Expiration Handling**: Returns standardized `401 Unauthorized` responses on token expiration or signature mismatch, enabling clean client-side re-authentication.
 
 ## Folder structure
 
